@@ -43,7 +43,7 @@ sync_github_name = false
 sync_github_name = true
 
 [people.WladmirJunior]
-real_name = "Wladmir Júnior"
+real_name = "Wladmir J煤nior"
 sync_github_name = true
 
 [people.Losminek]
@@ -61,3 +61,7 @@ sync_github_name = false
 real_name = "Chester Fung"
 display_name = "Chester Fung"
 sync_github_name = true
+
+[people.Dennis-pan-x]
+display_name = "Dennis-pan"
+sync_github_name = false

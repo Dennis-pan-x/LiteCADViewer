@@ -703,6 +703,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cadcraft-render-wgpu"
+version = "0.7.0"
+dependencies = [
+ "cadcraft-color",
+ "cadcraft-doc",
+ "cadcraft-geom",
+ "cadcraft-render",
+ "egui",
+ "egui-wgpu",
+ "log",
+ "naga",
+]
+
+[[package]]
 name = "cadcraft-ui-egui"
 version = "0.7.0"
 dependencies = [
@@ -712,6 +726,7 @@ dependencies = [
  "cadcraft-fonts",
  "cadcraft-geom",
  "cadcraft-render",
+ "cadcraft-render-wgpu",
  "craft-ui",
  "egui",
  "egui-wgpu",
@@ -722,6 +737,28 @@ dependencies = [
  "serde",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "cadcraft-viewer"
+version = "0.7.0"
+dependencies = [
+ "cadcraft-color",
+ "cadcraft-doc",
+ "cadcraft-geom",
+ "cadcraft-io",
+ "cadcraft-render",
+ "cadcraft-render-wgpu",
+ "craft-ui",
+ "eframe",
+ "egui",
+ "egui-wgpu",
+ "image",
+ "rfd",
+ "serde_json",
+ "sys-locale",
+ "tempfile",
+ "winresource",
 ]
 
 [[package]]

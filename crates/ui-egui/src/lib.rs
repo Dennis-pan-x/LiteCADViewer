@@ -29,7 +29,7 @@ pub mod xrefs;
 
 pub mod dyngrips;
 pub mod dyninput;
-pub mod gpu;
+pub use cadcraft_render_wgpu as gpu;
 pub mod grip_dyn;
 pub mod i18n;
 pub mod icons;

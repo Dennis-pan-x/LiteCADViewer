@@ -12,8 +12,11 @@
 //! is drawn after everything before it and under everything after it. The shader only uses
 //! vertex buffers and one uniform buffer, so it runs on WebGPU and WebGL2.
 //!
-//! Infinite lines (xline/ray) and all overlays stay egui shapes (see `canvas.rs`), and the
-//! canvas falls back to the CPU path when no wgpu render state was handed to the app.
+//! Editor infinite lines and overlays stay egui shapes. [`build_ordered_mesh`] instead
+//! keeps infinite spans and primitive-order groups on the GPU for the read-only viewer.
+
+#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
+#![forbid(unsafe_code)]
 
 use std::sync::{Arc, Mutex};
 
@@ -94,6 +97,8 @@ impl FrameCap {
 #[derive(Clone, Copy, Debug)]
 pub struct GpuTarget {
     pub format: wgpu::TextureFormat,
+    /// Must match the sample count of the host render pass.
+    pub sample_count: u32,
     /// The stencil buffer format of the render pass, when it has one (the native window asks
     /// for one): clipped viewports are clipped with it.
     pub stencil: Option<wgpu::TextureFormat>,
@@ -105,7 +110,7 @@ pub struct MeshData {
     pub lines: Vec<u8>,
     pub tris: Vec<u8>,
     pub quads: Vec<u8>,
-    /// Draw-order breaks, one before each wipeout mask: the fill vertices, line vertices and
+    /// Draw-order breaks, before masks and ordered-viewer category inversions: fill, line and
     /// quad instances drawn before it. Each group is drawn fills, lines, quads in turn.
     pub breaks: Vec<[usize; 3]>,
     /// The vertex buffers already created from this data (see [`MeshData::upload_now`]); the
@@ -183,6 +188,17 @@ fn premultiplied(c: Rgb, a: u8) -> [u8; 4] {
 
 /// Convert a display list into vertex data relative to `origin`, colours resolved against `bg`.
 pub fn build_mesh(list: &DisplayList, origin: Vec2, bg: Rgb, lwdisplay: bool) -> MeshData {
+    build_mesh_in(list, origin, bg, lwdisplay, false)
+}
+
+/// Viewer path: preserve primitive order and render XLINE/RAY in the same groups
+/// as masks and transparent fills. Infinite spans are extended in the shader,
+/// so camera changes do not rebuild their vertex data. Editor callers keep [`build_mesh`].
+pub fn build_ordered_mesh(list: &DisplayList, origin: Vec2, bg: Rgb, lwdisplay: bool) -> MeshData {
+    build_mesh_in(list, origin, bg, lwdisplay, true)
+}
+
+fn build_mesh_in(list: &DisplayList, origin: Vec2, bg: Rgb, lwdisplay: bool, ordered: bool) -> MeshData {
     let mut m = MeshData {
         lines: Vec::with_capacity(list.segment_count().saturating_mul(2 * VERTEX_SIZE)),
         tris: Vec::with_capacity(list.tris.len().saturating_mul(VERTEX_SIZE)),
@@ -190,7 +206,17 @@ pub fn build_mesh(list: &DisplayList, origin: Vec2, bg: Rgb, lwdisplay: bool) ->
         breaks: Vec::new(),
         uploaded: None,
     };
+    let mut previous_rank = 0;
     for prim in &list.prims {
+        let rank = match prim.kind {
+            Kind::Tris | Kind::Mask => 0,
+            Kind::Polyline if wide_width(prim.lw, lwdisplay).is_none() => 1,
+            _ => 2,
+        };
+        if ordered && prim.kind != Kind::Mask && rank < previous_rank {
+            m.breaks.push([m.tri_vertices(), m.line_vertices(), m.quad_instances()]);
+        }
+        previous_rank = rank;
         let col = premultiplied(prim.display_rgb(bg), prim.alpha());
         let pts = list.points(prim);
         match prim.kind {
@@ -233,6 +259,23 @@ pub fn build_mesh(list: &DisplayList, origin: Vec2, bg: Rgb, lwdisplay: bool) ->
                 }
             }
             // Drawn on the CPU each frame (clipped to the view).
+            Kind::Infinite { ray } if ordered => {
+                if let (Some(base), Some(direction)) = (pts.first(), pts.get(1)) {
+                    let direction = direction.normalized();
+                    // Project in f64 before upload: a distant base can otherwise
+                    // lose its line equation even when the visible line is near the origin.
+                    let anchor = *base + direction * (origin - *base).dot(direction);
+                    let ray_start = (*base - anchor).dot(direction);
+                    push_instance(
+                        &mut m.quads,
+                        rel(anchor, origin),
+                        [direction.x as f32, direction.y as f32],
+                        col,
+                        if ray { -2.0 } else { -1.0 },
+                        if ray { ray_start as f32 } else { 0.0 },
+                    );
+                }
+            }
             Kind::Infinite { .. } => {}
         }
     }
@@ -457,8 +500,26 @@ fn vs_quad(
     @location(3) width: f32,
     @location(4) start: f32,
 ) -> VOut {
-    let pa = to_px(a);
-    let pb = to_px(b);
+    var pa = to_px(a);
+    var pb = to_px(b);
+    var hw = 0.5 * width * view.c.x;
+    if (width < 0.0) {
+        // Ordered viewer XLINE/RAY: b stores a direction, not an endpoint.
+        let transformed = vec2<f32>(view.d.x * b.x + view.d.z * b.y, view.d.y * b.x + view.d.w * b.y);
+        let direction = vec2<f32>(transformed.x, -transformed.y);
+        let dir = direction / max(length(direction), 0.000001);
+        let nearest = pa + dir * dot(view.b.xy - pa, dir);
+        let span = view.b.z + view.b.w;
+        let ray_start = dot(pa - nearest, dir) + start * length(transformed) * view.a.z;
+        let first = select(-span, max(-span, ray_start), width < -1.5);
+        pa = nearest + dir * first;
+        pb = nearest + dir * span;
+        if (first > span) {
+            pa = vec2<f32>(-4.0 * span);
+            pb = pa;
+        }
+        hw = 0.5;
+    }
     let d = pb - pa;
     let len = length(d);
     var dir = vec2<f32>(1.0, 0.0);
@@ -467,7 +528,6 @@ fn vs_quad(
     }
     let n = vec2<f32>(-dir.y, dir.x);
     // Width arrives in points.
-    let hw = 0.5 * width * view.c.x;
     let t = select(0.0, 1.0, vi == 1u || vi == 4u || vi == 5u);
     let s = select(-1.0, 1.0, vi == 2u || vi == 3u || vi == 5u);
     let along = mix(pa - dir * hw, pb + dir * hw, t);
@@ -566,7 +626,7 @@ impl Resources {
                 },
                 primitive: wgpu::PrimitiveState { topology, ..Default::default() },
                 depth_stencil: stencil_state(s),
-                multisample: wgpu::MultisampleState { count: 1, mask: !0, alpha_to_coverage_enabled: false },
+                multisample: wgpu::MultisampleState { count: target.sample_count, mask: !0, alpha_to_coverage_enabled: false },
                 fragment: Some(wgpu::FragmentState {
                     module: &module,
                     entry_point: Some("fs_main"),
@@ -679,11 +739,22 @@ impl GpuFaults {
 /// `CreationContext::wgpu_render_state`) and the format of its render pass's stencil buffer,
 /// if it has one (eframe `NativeOptions::stencil_buffer`).
 pub fn install(rs: &egui_wgpu::RenderState, faults: &Arc<GpuFaults>, stencil: Option<wgpu::TextureFormat>) -> GpuTarget {
+    install_with_samples(rs, faults, stencil, 1)
+}
+
+/// Install into a multisampled host pass. `sample_count` must match the host's
+/// native options and be supported by its target format; ordinary editor callers use [`install`].
+pub fn install_with_samples(
+    rs: &egui_wgpu::RenderState,
+    faults: &Arc<GpuFaults>,
+    stencil: Option<wgpu::TextureFormat>,
+    sample_count: u32,
+) -> GpuTarget {
     let f = Arc::clone(faults);
     rs.device.on_uncaptured_error(Arc::new(move |e: wgpu::Error| f.error(e.to_string())));
     let f = Arc::clone(faults);
     rs.device.set_device_lost_callback(move |reason, message| f.device_lost(reason, message));
-    let target = GpuTarget { format: rs.target_format, stencil: stencil.filter(|s| s.has_stencil_aspect()) };
+    let target = GpuTarget { format: rs.target_format, sample_count: sample_count.max(1), stencil: stencil.filter(|s| s.has_stencil_aspect()) };
     let res = Resources::new(&rs.device, target);
     rs.renderer.write().callback_resources.insert(res);
     log::info!("gpu canvas: target {:?}, stencil {:?}", rs.target_format, target.stencil);
@@ -971,6 +1042,36 @@ mod tests {
         assert_eq!(m.tri_vertices(), 3);
         assert_eq!(&m.tris[8..12], &[10, 20, 30, 255], "the mask takes the background colour");
         assert_eq!(m.quad_instances(), 1);
+    }
+
+    #[test]
+    fn ordered_infinite_lines_stay_in_the_group_before_a_wipeout() {
+        let mut l = list();
+        if let Some(p) = l.prims.first_mut() {
+            p.kind = Kind::Infinite { ray: false };
+        }
+        if let Some(p) = l.prims.get_mut(1) {
+            p.kind = Kind::Mask;
+        }
+        let data = build_ordered_mesh(&l, Vec2::ZERO, Rgb(10, 20, 30), false);
+        assert_eq!(data.breaks.first(), Some(&[0, 0, 1]), "the infinite span is drawn before its later mask");
+        assert_eq!(data.quad_instances(), 3, "two infinite spans and the point marker");
+        assert_eq!(&data.quads[20..24], &(-1.0f32).to_le_bytes());
+    }
+
+    #[test]
+    fn remote_infinite_base_keeps_its_line_equation_near_the_view() {
+        let mut l = list();
+        l.verts = vec![Vec2::new(1_000_000_001.0, 1_000_000_000.0), Vec2::new(1.0, 1.0)];
+        l.prims.truncate(1);
+        if let Some(p) = l.prims.first_mut() {
+            p.kind = Kind::Infinite { ray: false };
+            p.start = 0;
+            p.len = 2;
+        }
+        let data = build_ordered_mesh(&l, Vec2::ZERO, Rgb(0, 0, 0), false);
+        let scalar = |start| f32::from_le_bytes(data.quads[start..start + 4].try_into().expect("float"));
+        assert!(((scalar(0) - scalar(4)) - 1.0).abs() < 1e-4, "remote base loses x-y=1 before viewport projection");
     }
 
     #[test]

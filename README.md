@@ -195,6 +195,17 @@ crashed survives the next start. The file stops growing at 16 MiB. `--version` w
 
 The logger is `apps/cadcraft/src/logging.rs`; the web build logs to the browser console instead.
 
+## Experimental read-only viewer
+
+For review without editing tools, try the separate `cadcraft-viewer` app:
+
+```sh
+cargo run --release -p cadcraft-viewer -- drawing.dwg
+```
+
+It reuses the drawing reader and renderer without the editing engine.
+See [the viewer guide](docs/viewer.md) for controls, limits and validation.
+
 ## Drive it from agents, MCP and the CLI
 
 ```sh

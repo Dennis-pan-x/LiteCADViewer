@@ -20,6 +20,7 @@ cadcraft-doc = { path = "crates/doc" }
 cadcraft-constraints = { path = "crates/constraints" }
 cadcraft-fonts = { path = "crates/fonts" }
 cadcraft-render = { path = "crates/render" }
+cadcraft-render-wgpu = { path = "crates/render-wgpu" }
 cadcraft-io = { path = "crates/io" }
 cadcraft-engine = { path = "crates/engine" }
 cadcraft-ui-egui = { path = "crates/ui-egui" }
