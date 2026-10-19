@@ -22,10 +22,6 @@ use std::{
 };
 use worker::{Event, Job, Task};
 
-fn text(zh: bool, cn: &'static str, en: &'static str) -> &'static str {
-    if zh { cn } else { en }
-}
-
 struct Viewer {
     cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     jobs: Sender<Task>,
@@ -46,7 +42,6 @@ struct Viewer {
     loading: bool,
     loaded: bool,
     dark: bool,
-    zh: bool,
     show_layers: bool,
     layer_filter: String,
     fit: bool,
@@ -71,15 +66,7 @@ struct Viewer {
 }
 
 impl Viewer {
-    fn new(
-        cc: &eframe::CreationContext<'_>,
-        path: Option<PathBuf>,
-        capture: Option<PathBuf>,
-        language: Option<bool>,
-        cpu: bool,
-        benchmark: bool,
-        started: Instant,
-    ) -> Self {
+    fn new(cc: &eframe::CreationContext<'_>, path: Option<PathBuf>, capture: Option<PathBuf>, cpu: bool, benchmark: bool, started: Instant) -> Self {
         let mut fonts = egui::FontDefinitions::default();
         #[cfg(windows)]
         for path in ["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/msjh.ttc", "C:/Windows/Fonts/simhei.ttf"] {
@@ -111,11 +98,6 @@ impl Viewer {
         });
         let gpu_available = device.is_some();
         let (jobs, events, cancel) = worker::spawn(cc.egui_ctx.clone(), device);
-        let zh = language.unwrap_or_else(|| {
-            std::env::var("CADCRAFT_VIEWER_LANGUAGE")
-                .map(|v| v.starts_with("zh"))
-                .unwrap_or_else(|_| sys_locale::get_locale().is_some_and(|s| s.starts_with("zh")))
-        });
         let mut app = Self {
             jobs,
             events,
@@ -131,12 +113,11 @@ impl Viewer {
             desired: None,
             inflight: false,
             source: None,
-            status: "就绪 / Ready".into(),
+            status: "Ready".into(),
             notes: vec![],
             loading: false,
             loaded: false,
             dark: true,
-            zh,
             show_layers: false,
             layer_filter: String::new(),
             fit: true,
@@ -197,7 +178,7 @@ impl Viewer {
         self.layout.clear();
         self.point = None;
         self.distance = None;
-        self.status = text(self.zh, "正在读取图纸…", "Opening drawing…").into();
+        self.status = "Opening drawing…".into();
         self.source = Some(path.clone());
         self.send(Job::Open(self.generation, path));
     }
@@ -221,10 +202,10 @@ impl Viewer {
                     self.loaded = true;
                     self.fit = true;
                     self.dirty = true;
-                    self.status = format!("{} · {} objects · {:.0} ms", text(self.zh, "只读", "Read only"), m.entities, ms);
+                    self.status = format!("Read only · {} objects · {:.0} ms", m.entities, ms);
                     if let Some(p) = &self.source {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Title(format!(
-                            "{} — LiteCAD Viewer",
+                            "{} — LiteCADViewer",
                             p.file_name().unwrap_or_default().to_string_lossy()
                         )));
                     }
@@ -248,7 +229,7 @@ impl Viewer {
                     self.texture = Some(ctx.load_texture("drawing", image, egui::TextureOptions::LINEAR));
                     self.image_view = Some(v);
                     self.inflight = false;
-                    self.status = format!("{} · {:.0} ms {}", text(self.zh, "只读", "Read only"), ms, text(self.zh, "绘制", "render"));
+                    self.status = format!("Read only · {:.0} ms render", ms);
                 }
                 Event::Mesh(id, frame, ms) if id == self.generation => {
                     self.inflight = false;
@@ -260,7 +241,7 @@ impl Viewer {
                         self.gpu_cache = Some(frame.cache);
                         self.gpu_key = self.gpu_key.wrapping_add(1);
                         self.diagnostics.mesh_prepare_ms += ms;
-                        self.status = format!("{} · GPU · {:.0} ms", text(self.zh, "只读", "Read only"), ms);
+                        self.status = format!("Read only · GPU · {:.0} ms", ms);
                     }
                 }
                 Event::Aborted(id) if id == self.generation => {
@@ -361,38 +342,34 @@ impl eframe::App for Viewer {
         }
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let zh = self.zh;
         egui::Panel::top("toolbar").frame(egui::Frame::new().fill(theme::CHROME).inner_margin(8.0)).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 if let Some(mark) = &self.app_mark {
                     ui.image((mark.id(), egui::vec2(26.0, 26.0)));
                 }
-                ui.strong("LiteCAD Viewer");
+                ui.strong("LiteCADViewer");
                 ui.separator();
-                if icons::button(ui, Icon::Open, text(zh, "打开图纸", "Open"), false, true).on_hover_text("Ctrl+O / DWG, DXF, DWT").clicked() {
+                if icons::button(ui, Icon::Open, "Open", false, true).on_hover_text("Ctrl+O / DWG, DXF, DWT").clicked() {
                     self.pick_open();
                 }
-                if icons::button(ui, Icon::Fit, text(zh, "适应窗口", "Fit"), false, self.loaded).on_hover_text("Home / Double click").clicked() {
+                if icons::button(ui, Icon::Fit, "Fit", false, self.loaded).on_hover_text("Home / Double click").clicked() {
                     self.fit = true;
                 }
-                if icons::button(ui, Icon::Layers, text(zh, "图层", "Layers"), self.show_layers, true).clicked() {
+                if icons::button(ui, Icon::Layers, "Layers", self.show_layers, true).clicked() {
                     self.show_layers = !self.show_layers;
                 }
-                if icons::button(ui, Icon::Measure, text(zh, "测距", "Measure"), self.measuring, self.loaded).clicked() {
+                if icons::button(ui, Icon::Measure, "Measure", self.measuring, self.loaded).clicked() {
                     self.measuring = !self.measuring;
                     self.point = None;
                 }
-                if icons::button(ui, Icon::Sun, text(zh, "黑 / 白底", "Dark / light"), !self.dark, true).clicked() {
+                if icons::button(ui, Icon::Sun, "Dark / light", !self.dark, true).clicked() {
                     self.dark = !self.dark;
                     self.dirty = true;
                 }
-                if icons::button(ui, Icon::Export, text(zh, "导出 PDF", "Export PDF"), false, self.loaded && !self.loading).clicked()
+                if icons::button(ui, Icon::Export, "Export PDF", false, self.loaded && !self.loading).clicked()
                     && let Some(p) = rfd::FileDialog::new().add_filter("PDF", &["pdf"]).set_file_name("drawing.pdf").save_file()
                 {
                     self.send(Job::Pdf(self.generation, p));
-                }
-                if ui.button(if zh { "English" } else { "中文" }).clicked() {
-                    self.zh = !self.zh;
                 }
                 if ui
                     .add_enabled(self.gpu_available && !self.inflight && !self.loading, egui::Checkbox::new(&mut self.use_gpu, "GPU"))
@@ -411,11 +388,11 @@ impl eframe::App for Viewer {
                     .as_ref()
                     .and_then(|p| p.file_name())
                     .map(|name| name.to_string_lossy().into_owned())
-                    .unwrap_or_else(|| text(zh, "拖入 DWG / DXF 文件开始看图", "Drop a DWG / DXF drawing to begin").into());
+                    .unwrap_or_else(|| "Drop a DWG / DXF drawing to begin".into());
                 let path = self.source.as_ref().map(|p| p.display().to_string()).unwrap_or_default();
                 ui.add(egui::Label::new(egui::RichText::new(title).small().color(theme::TEXT_DIM)).truncate()).on_hover_text(path);
                 ui.separator();
-                ui.small(text(zh, "只读看图", "Read-only preview"));
+                ui.small("Read-only preview");
             });
         });
         egui::Panel::bottom("status").frame(egui::Frame::new().fill(theme::CHROME).inner_margin(6.0)).show(ui, |ui| {
@@ -427,9 +404,9 @@ impl eframe::App for Viewer {
                 ui.separator();
                 ui.small(if self.use_gpu { "GPU" } else { "CPU" }).on_hover_text(&self.adapter);
                 ui.separator();
-                ui.small(text(zh, "滚轮缩放 · 按住左键或中键平移 · 双击全图", "Wheel zoom · Drag to pan · Double-click to fit"));
+                ui.small("Wheel zoom · Drag to pan · Double-click to fit");
                 if let Some(d) = self.distance {
-                    ui.strong(format!("{} {:.4} {}", text(zh, "距离", "Distance"), d, text(zh, "图纸单位", "drawing units")));
+                    ui.strong(format!("Distance {:.4} drawing units", d));
                 }
             });
         });
@@ -437,8 +414,8 @@ impl eframe::App for Viewer {
             let previous = self.layout.clone();
             egui::Panel::bottom("spaces").frame(egui::Frame::new().fill(theme::CHROME_DARK).inner_margin(5.0)).show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    ui.label(text(zh, "空间", "Space"));
-                    ui.selectable_value(&mut self.layout, String::new(), text(zh, "模型", "Model"));
+                    ui.label("Space");
+                    ui.selectable_value(&mut self.layout, String::new(), "Model");
                     for layout in &self.layouts {
                         ui.selectable_value(&mut self.layout, layout.clone(), layout);
                     }
@@ -451,29 +428,19 @@ impl eframe::App for Viewer {
         }
         egui::Panel::top("notice").frame(egui::Frame::new().fill(theme::CHROME_DARK).inner_margin(6.0)).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.colored_label(
-                    theme::WARN,
-                    text(
-                        zh,
-                        "二维试用版 · 保留原图 · SHX 字体、特殊对象与三维显示需用浩辰核对",
-                        "2D preview · Source unchanged · Verify SHX, custom objects and 3D in another viewer",
-                    ),
-                );
+                ui.colored_label(theme::WARN, "2D preview · Source unchanged · Verify SHX, custom objects and 3D in another viewer");
             });
             if !self.notes.is_empty() {
-                egui::CollapsingHeader::new(format!("{} ({})", text(zh, "读取提示", "Read notes"), self.notes.len())).default_open(true).show(
-                    ui,
-                    |ui| {
-                        for n in &self.notes {
-                            ui.label(n);
-                        }
-                    },
-                );
+                egui::CollapsingHeader::new(format!("Read notes ({})", self.notes.len())).default_open(true).show(ui, |ui| {
+                    for n in &self.notes {
+                        ui.label(n);
+                    }
+                });
             }
         });
         if self.show_layers {
             egui::Panel::right("layers").default_size(230.0).resizable(true).show(ui, |ui| {
-                ui.heading(text(zh, "图层", "Layers"));
+                ui.heading("Layers");
                 ui.text_edit_singleline(&mut self.layer_filter);
                 let mut changed = vec![];
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -611,7 +578,7 @@ impl eframe::App for Viewer {
                 ui.painter().text(
                     rect.center(),
                     egui::Align2::CENTER_CENTER,
-                    text(zh, "把图纸拖到这里，或点击「打开图纸」", "Drop a drawing here, or choose Open"),
+                    "Drop a drawing here, or choose Open",
                     egui::FontId::proportional(20.0),
                     Color32::from_rgb(150, 160, 174),
                 );
@@ -663,7 +630,6 @@ fn main() -> eframe::Result {
     let mut args = std::env::args().skip(1);
     let mut path = None;
     let mut capture = None;
-    let mut language = None;
     let mut cpu = false;
     let mut benchmark = false;
     while let Some(a) = args.next() {
@@ -682,9 +648,12 @@ fn main() -> eframe::Result {
             "--capture" => capture = args.next().map(PathBuf::from),
             "--cpu" => cpu = true,
             "--benchmark" => benchmark = true,
-            "--lang" => language = args.next().map(|s| s.starts_with("zh")),
+            "--lang" => {
+                // Accept legacy shortcuts; this edition always uses English.
+                let _ = args.next();
+            }
             "--version" => {
-                println!("LiteCAD Viewer {} (read-only)", env!("CARGO_PKG_VERSION"));
+                println!("LiteCADViewer {} (read-only)", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             _ => path = Some(PathBuf::from(a)),
@@ -703,9 +672,5 @@ fn main() -> eframe::Result {
         create.instance_descriptor.backends = eframe::wgpu::Backends::from_env().unwrap_or(eframe::wgpu::Backends::DX12);
         create.instance_descriptor.backend_options.dx12.shader_compiler = eframe::wgpu::Dx12Compiler::Fxc;
     }
-    eframe::run_native(
-        "轻图 CAD — LiteCAD Viewer",
-        options,
-        Box::new(move |cc| Ok(Box::new(Viewer::new(cc, path, capture, language, cpu, benchmark, started)))),
-    )
+    eframe::run_native("LiteCADViewer", options, Box::new(move |cc| Ok(Box::new(Viewer::new(cc, path, capture, cpu, benchmark, started)))))
 }

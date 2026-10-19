@@ -1736,7 +1736,7 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "litecad-viewer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cadcraft-color",
  "cadcraft-doc",
@@ -1751,7 +1751,6 @@ dependencies = [
  "image",
  "rfd",
  "serde_json",
- "sys-locale",
  "tempfile",
  "winresource",
 ]
@@ -3131,15 +3130,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "sys-locale"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
-dependencies = [
- "libc",
 ]
 
 [[package]]

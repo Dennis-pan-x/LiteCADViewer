@@ -1,24 +1,24 @@
-<p align="center"><img src="assets/viewer-icon/viewer-256.png" width="112" alt="LiteCAD Viewer icon"></p>
+<p align="center"><img src="assets/viewer-icon/viewer-256.png" width="112" alt="LiteCADViewer icon"></p>
 
-# 轻图 CAD · LiteCAD Viewer
+# LiteCADViewer
 
-**轻量、只读、GPU 加速的二维 CAD 看图器。**
+**A lightweight, read-only 2D CAD viewer with GPU rendering.**
 
 An independent desktop application for reviewing CAD drawings, maintained by **Dennis-pan ([@Dennis-pan-x](https://github.com/Dennis-pan-x))**. Built from CADCraft's open-source reading and rendering core, without its design editor, editing engine or constraint solver.
 
-**[下载 Windows x64 试用版 / Download](https://github.com/Dennis-pan-x/litecad-viewer/releases/latest)** · [操作说明 / Usage](docs/usage.md) · [来源与署名 / Provenance](docs/provenance.md)
+**[Download Windows x64 preview](https://github.com/Dennis-pan-x/LiteCADViewer/releases/latest)** · [Usage](docs/usage.md) · [Provenance](docs/provenance.md)
 
-![LiteCAD Viewer reviewing a synthetic drawing](docs/images/viewer.png)
+![LiteCADViewer reviewing a synthetic drawing](docs/images/viewer.png)
 
-## 能做什么
+## Features
 
-- 打开 DWG、DXF、DWT，支持拖入文件。
-- GPU 绘图、4 倍抗锯齿，缩放和平移复用几何缓存；支持切回 CPU。
-- 全图适配、图层筛选与临时显隐、模型/布局切换。
-- 自由选取两点测距，导出当前空间到新的 PDF。
-- 中英文界面。源图只读打开，不提供实体编辑、图纸保存或自动保存。
+- Open DWG, DXF and DWT drawings, including drag-and-drop.
+- Hardware GPU rendering with four-sample antialiasing and cached geometry during navigation; CPU fallback available.
+- Fit to drawing, filter layers, toggle visibility temporarily, and switch model/layout spaces.
+- Measure between two freely picked points and export the current space to a new PDF.
+- English-only interface. Source drawings are opened read-only; there is no entity editing, drawing save or autosave.
 
-解压 Windows 软件包后，运行 **LiteCADViewer.exe**。当前发布为 Windows x64 portable preview；尚未验证其他系统的运行效果。
+Extract the Windows package and run **LiteCADViewer.exe**. The current release is a Windows x64 portable preview; runtime behavior on other systems has not been validated.
 
 ## Scope and limits
 
@@ -43,11 +43,11 @@ Run [scripts/check.ps1](scripts/check.ps1) for the complete local formatting, li
 
 ## Project structure
 
-- `apps/litecad-viewer`: the standalone viewer frontend and Windows product resources, version 0.1.0.
+- `apps/litecad-viewer`: the standalone viewer frontend and Windows product resources, version 0.1.1.
 - `crates/`: nine required CADCraft-derived geometry, document, file and rendering libraries, retaining their original names/version and notices.
 - `assets/viewer-icon`: the approved origami-bird application icon.
 
-This repository is the independent **LiteCAD Viewer application**. The separate [CADCraft component PR #1606](https://github.com/storytold/cadcraft/pull/1606) is related upstream technical work, not the product's home.
+This repository is the independent **LiteCADViewer application**. The separate [CADCraft component PR #1606](https://github.com/storytold/cadcraft/pull/1606) is related upstream technical work, not the product's home.
 
 ## License and community
 

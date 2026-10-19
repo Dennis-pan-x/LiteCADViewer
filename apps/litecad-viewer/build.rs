@@ -8,7 +8,7 @@ fn main() {
     let mut resource = winresource::WindowsResource::new();
     resource.set_icon("../../assets/viewer-icon/viewer.ico");
     resource
-        .set("ProductName", "LiteCAD Viewer")
+        .set("ProductName", "LiteCADViewer")
         .set("FileDescription", "LiteCAD lightweight read-only CAD viewer")
         .set("CompanyName", "Dennis-pan and CADCraft contributors")
         .set("LegalCopyright", "Copyright (c) 2026 Dennis-pan and CADCraft contributors. MIT OR Apache-2.0.")

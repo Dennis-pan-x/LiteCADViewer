@@ -1,6 +1,6 @@
-# LiteCAD Viewer contributor guidance
+# LiteCADViewer contributor guidance
 
-This is the independent 轻图 CAD / LiteCAD Viewer application, maintained by Dennis-pan (@Dennis-pan-x). It derives nine permissively licensed core crates from CADCraft; provenance is recorded in docs/provenance.md. Keep source copyrights and notices.
+This is the independent LiteCADViewer application, maintained by Dennis-pan (@Dennis-pan-x). It derives nine permissively licensed core crates from CADCraft; provenance is recorded in docs/provenance.md. Keep source copyrights and notices.
 
 - Keep the frontend read-only: never add source drawing writes, autosave or overwriting export outputs.
 - Avoid editing-engine, constraints and full-editor dependencies. Keep GPU caching and ordered drawing behavior intact.

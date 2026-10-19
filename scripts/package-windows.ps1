@@ -1,4 +1,4 @@
-param([string]$Version = '0.1.0')
+param([string]$Version = '0.1.1')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $repoRoot
@@ -7,7 +7,7 @@ try {
     cargo build --locked --release -p litecad-viewer --config profile.release.package.litecad-viewer.opt-level=1 --config profile.release.package.litecad-viewer.codegen-units=32
     if ($LASTEXITCODE -ne 0) { throw 'Release build failed' }
     $targetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $repoRoot 'target' }
-    $packageName = "LiteCAD-Viewer-$Version-windows-x64"
+    $packageName = "LiteCADViewer-$Version-windows-x64"
     $distRoot = Join-Path $repoRoot 'dist'
     $packageRoot = Join-Path $distRoot $packageName
     New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null

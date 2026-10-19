@@ -1,4 +1,4 @@
-# LiteCAD Viewer / 轻图 CAD
+# LiteCADViewer
 
 `litecad-viewer` is a separate native frontend for opening and reviewing DWG,
 DXF and DWT drawings. It reuses the existing `io`, `doc`, `fonts` and `render`
@@ -9,11 +9,11 @@ editor UI. The full CADCraft desktop app is unchanged.
 cargo run --release -p litecad-viewer -- drawing.dwg
 ```
 
-The interface follows the system language (English or Simplified Chinese). Use
-`--lang en` or `--lang zh-CN` to choose it for one launch; the toolbar can switch
-languages while running. A Chinese interface requires a suitable installed font.
-On Windows the viewer tries the system YaHei, JhengHei and SimHei fonts; it never
-ships copies of those fonts.
+The interface and application documentation are English-only. Legacy `--lang`
+arguments are accepted for shortcut compatibility but do not change the interface.
+Drawing text, filenames and layer names retain their original Unicode content.
+On Windows the viewer can use installed YaHei, JhengHei or SimHei fonts for these
+names; it never ships copies of system fonts.
 
 The chrome follows CADCraft's slate palette, typography, compact controls and
 24-pixel line-icon geometry. Toolbar controls use the same `craft-ui` icon-button
