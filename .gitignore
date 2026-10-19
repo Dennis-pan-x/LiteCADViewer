@@ -1,11 +1,4 @@
-*~
-/target
-/plan/
-/plans/
+/target/
 /dist/
-/log/
-/temp/
+*.log
 .DS_Store
-*.swp
-/apps/cadcraft-web/dist/
-/.claude/worktrees/
