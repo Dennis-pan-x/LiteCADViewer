@@ -43,9 +43,9 @@ Run [scripts/check.ps1](scripts/check.ps1) for the complete local formatting, li
 
 ## Project structure
 
-- `apps/litecad-viewer`: the standalone viewer frontend and Windows product resources, version 0.1.1.
+- `apps/litecad-viewer`: the standalone viewer frontend and Windows product resources, version 0.1.2.
 - `crates/`: nine required CADCraft-derived geometry, document, file and rendering libraries, retaining their original names/version and notices.
-- `assets/viewer-icon`: the approved origami-bird application icon.
+- `assets/viewer-icon`: the peregrine falcon application icon.
 
 This repository is the independent **LiteCADViewer application**. The separate [CADCraft component PR #1606](https://github.com/storytold/cadcraft/pull/1606) is related upstream technical work, not the product's home.
 

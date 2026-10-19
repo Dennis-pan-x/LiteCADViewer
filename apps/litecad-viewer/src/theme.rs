@@ -18,8 +18,8 @@ pub const WARN: Color32 = Color32::from_rgb(0xff, 0xd0, 0x80);
 pub const CANVAS: Color32 = Color32::from_rgb(0x22, 0x28, 0x2f);
 pub const PAPER: Color32 = Color32::WHITE;
 
-// User-selected MIT OR Apache-2.0 viewer artwork: amber origami bird with drafting
-// tools on cyan. The editor's icon and ArtCraft marks are separate.
+// Original MIT OR Apache-2.0 viewer artwork: engraved peregrine falcon on cyan.
+// The editor's icon and ArtCraft marks are separate.
 pub fn app_icon() -> Option<egui::IconData> {
     eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/viewer-icon/viewer-256.png")).ok()
 }

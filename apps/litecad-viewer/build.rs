@@ -9,7 +9,7 @@ fn main() {
     resource.set_icon("../../assets/viewer-icon/viewer.ico");
     resource
         .set("ProductName", "LiteCADViewer")
-        .set("FileDescription", "LiteCAD lightweight read-only CAD viewer")
+        .set("FileDescription", "LiteCADViewer lightweight read-only CAD viewer")
         .set("CompanyName", "Dennis-pan and CADCraft contributors")
         .set("LegalCopyright", "Copyright (c) 2026 Dennis-pan and CADCraft contributors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "LiteCADViewer.exe")

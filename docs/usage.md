@@ -19,7 +19,7 @@ The chrome follows CADCraft's slate palette, typography, compact controls and
 24-pixel line-icon geometry. Toolbar controls use the same `craft-ui` icon-button
 component as the editor; no editing engine is loaded. The window, executable and
 desktop shortcut use original MIT/Apache-licensed viewer artwork from
-`assets/viewer-icon`: an amber origami bird, drafting tools and drawing sheet on a
+`assets/viewer-icon`: an engraved peregrine falcon and subtle blueprint grid on a
 cyan tile, sharing the family palette while remaining visually distinct from the
 editor's icon. The high-resolution RGBA PNG is the source master; PNG/ICO exports
 include sizes down to 16 pixels. Restricted
